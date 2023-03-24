@@ -23,9 +23,7 @@ jobs:
       matrix:
         include:
           - environment: staging
-            TF_WORKSPACE: ${{ vars.TERRAFORM_WORKSPACE }}
           - environment: production
-            TF_WORKSPACE: ${{ vars.TERRAFORM_WORKSPACE }}
     environment:
       name: ${{ matrix.environment }}
     steps:
@@ -70,11 +68,11 @@ jobs:
       # Generates an execution plan for Terraform
       - name: Terraform Apply
         run: |
-          terraform workspace select $TERRAFORM_WORKSPACE
+          terraform workspace select ${{ matrix.environment }}
           terraform apply -auto-approve \
             -input=false \
             -var="staging_iam_role=${{ secrets.STAGING_IAM_ROLE }}" \
             -var="production_iam_role=${{ secrets.PRODUCTION_IAM_ROLE }}"
         env:
-          TERRAFORM_WORKSPACE: ${{ matrix.TF_WORKSPACE }}
+          TF_WORKSPACE: ${{ matrix.environment }}
         working-directory: lambda/hackerone-zendesk-integration/
