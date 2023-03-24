@@ -80,7 +80,8 @@ def get_hackerone_report(report_id):
 
         for x in [
             "issue_tracker_reference_id",
-            "issue_tracker_reference_url" "title",
+            "issue_tracker_reference_url",
+            "title",
             "vulnerability_information",
             "main_state",
             "state",
