@@ -1,6 +1,6 @@
-h1_zendesk_integration/run.ps1
-h1_zendesk_integration/run.sh
-h1_zendesk_integration/test.py
+**/.terraform
+**/.terraform.*
+**/*.tfvars
 
 **/.target
 *.zip
