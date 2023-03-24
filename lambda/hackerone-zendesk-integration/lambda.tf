@@ -14,12 +14,12 @@ terraform {
 
 variable "staging_iam_role" {
   sensitive = true
-  type = string
+  type      = string
 }
 
 variable "production_iam_role" {
   sensitive = true
-  type = string
+  type      = string
 }
 
 provider "aws" {
@@ -92,7 +92,7 @@ data "aws_iam_policy_document" "arpd" {
 }
 
 resource "aws_lambda_function" "lambda" {
-  filename      = "target.zip"
+  filename         = "target.zip"
   source_code_hash = filebase64sha256("target.zip")
 
   function_name = local.lambda_name
