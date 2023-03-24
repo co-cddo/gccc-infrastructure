@@ -24,10 +24,8 @@ jobs:
         include:
           - environment: staging
             TF_WORKSPACE: ${{ vars.TERRAFORM_WORKSPACE }}
-            AWS_REGION: ${{ vars.AWS_REGION }}
           - environment: production
             TF_WORKSPACE: ${{ vars.TERRAFORM_WORKSPACE }}
-            AWS_REGION: ${{ vars.AWS_REGION }}
     environment:
       name: ${{ matrix.environment }}
     steps:
@@ -53,7 +51,7 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           role-session-name: ${{ github.run_id }}-${{ github.event_name }}-${{ github.job }}
-          aws-region: ${{ matrix.AWS_REGION }}
+          aws-region: ${{ vars.AWS_REGION }}
 
       - name: Test AWS access
         run: |
