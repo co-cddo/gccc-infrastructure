@@ -65,6 +65,23 @@ resource "aws_iam_policy" "lambda_policy" {
         Effect   = "Allow"
         Resource = "arn:aws:logs:*:*:*"
       },
+      {
+        Action = [
+          "s3:ListBucket"
+        ]
+        Effect   = "Allow"
+        Resource = "arn:aws:s3:::gccc-zendesk-backup-*"
+      },
+      {
+        Action = [
+          "s3:PutObject",
+          "s3:GetObjectAcl",
+          "s3:GetObject",
+          "s3:PutObjectTagging"
+        ]
+        Effect   = "Allow"
+        Resource = "arn:aws:s3:::gccc-zendesk-backup-*/*"
+      },
     ]
   })
 }
