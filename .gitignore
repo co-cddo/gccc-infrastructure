@@ -2,6 +2,9 @@
 **/.terraform.*
 **/*.tfvars
 
+.*.sh
+.*.ps1
+
 **/.target
 *.zip
 
