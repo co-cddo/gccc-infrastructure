@@ -67,7 +67,7 @@ def create_or_update_zendesk_ticket(h1obj: dict):
         zticket = tc_resp.ticket
 
         zticket.comment = Comment(
-            body=f"Created automatically from HackerOne report: {h1obj['report_url']}\n\nNote: custom fields (left) and the subject are synchronised automatically from HackerOne.\n\nNext steps:\n - find the system or service owner\n - change the 'Requester' to the main contact found (use 'CC' in the top right of the comments box to include additional people)\n - make sure the 'Select a Reply From' has the correct vm email selected\n - use 'Public reply' to inform to requester and followers of the report\n - use HackerOne to keep the security researcher informed",
+            body=f"Created automatically from HackerOne report: {h1obj['report_url']}\n\nNote: custom fields (left) and the subject are synchronised automatically from HackerOne.\n\nNext steps:\n - find the system or service owner\n - change the 'Requester' to the main contact found (use 'CC' in the top right of the comments box to include additional people)\n - make sure the 'Select a Reply From' has the correct vm email selected\n - use 'Public reply' to inform the requester and followers of the report\n - use HackerOne to keep the security researcher informed",
             public=False,
             author_id=zendesk_requester,
         )
@@ -89,5 +89,7 @@ def create_or_update_zendesk_ticket(h1obj: dict):
         CustomField(id=13630617594897, value=h1obj["weakness_desc"]),
     ]
     zenpy_client.tickets.update(zticket)
+
+    print(json.dumps({"zendesk_ticket": zticket.to_dict()}, default=str))
 
     return zticket.id

@@ -3,6 +3,9 @@ import json
 import zendesk
 import hackerone
 
+from random import randint
+from time import sleep
+
 
 def lambda_handler(event, context):
     if "report_id" in event:
@@ -14,6 +17,9 @@ def lambda_handler(event, context):
                     event["report_id"],
                 )
             else:
+                # sleep for a random time to reduce likelihood of duplicate tickets being created:
+                sleep(randint(1, 10))
+
                 zid = zendesk.create_or_update_zendesk_ticket(hackerone_report)
 
                 print(
