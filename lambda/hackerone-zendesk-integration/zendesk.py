@@ -16,7 +16,7 @@ zenpy_client = Zenpy(**zendesk_creds)
 
 zendesk_email = os.environ["ZENDESK_EMAIL"]  # what the "from" email is
 zendesk_requester = 13633022984593  # HackerOne Automation user
-zendesk_group = 10980471236113  # Vulnerability Management Team
+# zendesk_group = 10980471236113  # Vulnerability Management Team; use Zendesk Triggers to assign!
 zendesk_ticket_form = 12219491114257  # Vulnerability Report
 
 
@@ -60,7 +60,7 @@ def create_or_update_zendesk_ticket(h1obj: dict):
                 recipient=zendesk_email,
                 submitter_id=zendesk_requester,
                 requester_id=zendesk_requester,
-                group_id=zendesk_group,
+                # group_id=zendesk_group, # use Zendesk Triggers to assign!
                 ticket_form_id=zendesk_ticket_form,
             )
         )
