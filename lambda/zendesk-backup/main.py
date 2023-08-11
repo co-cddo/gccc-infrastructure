@@ -41,6 +41,19 @@ def get_key(obj: dict) -> str:
     return res
 
 
+def add_athena_datetimes(d: dict = {}) -> dict:
+    res = {}
+    for key in d:
+        if d[key] and type(d[key]) == str:
+            if re.match("(?i)2[\d\-]+t\d\d:", d[key]):
+                res[f"{key}_athena"] = (
+                    d[key].lower().replace("t", " ").replace("z", "").split(".")[0]
+                )
+
+    res.update(d)
+    return res
+
+
 def save_support(ticket_ids: list = []):
     tickets = []
 
@@ -55,8 +68,11 @@ def save_support(ticket_ids: list = []):
         filename = f"gc3-{ticket.id}.json"
         key = f"{s3_support_prefix}tickets/{filename}"
         jprint(f"Saving 's3://{s3_bucket}/{key}'")
+
+        dobj = add_athena_datetimes(ticket.to_dict())
+
         s3_client.put_object(
-            Body=json.dumps(ticket.to_dict(), default=str).encode("utf-8"),
+            Body=json.dumps(dobj, default=str).encode("utf-8"),
             Bucket=s3_bucket,
             Key=key,
         )
@@ -102,9 +118,11 @@ def save_helpcentre(article_ids: list = []):
             html = file_obj["body"]
             html_filename = f"{file}.html"
 
+        wdt = add_athena_datetimes(file_obj)
+
         jprint(f"Saving 's3://{s3_bucket}/{s3_helpcentre_prefix}{filename}'")
         s3_client.put_object(
-            Body=json.dumps(file_obj, default=str).encode("utf-8"),
+            Body=json.dumps(wdt, default=str).encode("utf-8"),
             Bucket=s3_bucket,
             Key=f"{s3_helpcentre_prefix}{filename}",
         )
