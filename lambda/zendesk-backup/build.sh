@@ -4,7 +4,7 @@ rm ./*.zip || echo "No ZIPs to delete"
 rm -rf .target || echo "No .target/ to delete"
 mkdir .target
 
-python3.9 -m pip install -r requirements.txt -t .target/ --upgrade --no-user
+python3.11 -m pip install -r requirements.txt -t .target/ --upgrade --no-user
 
 cp ./*.py .target/
 

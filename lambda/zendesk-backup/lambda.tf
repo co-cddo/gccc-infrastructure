@@ -115,10 +115,10 @@ resource "aws_lambda_function" "lambda" {
   function_name = local.lambda_name
   role          = aws_iam_role.lambda_role.arn
   handler       = "main.lambda_handler"
-  runtime       = "python3.9"
+  runtime       = "python3.11"
 
-  memory_size = 256
-  timeout     = 90
+  memory_size = 512
+  timeout     = 300
 
   lifecycle {
     ignore_changes = [
