@@ -51,13 +51,14 @@ def save_support(ticket_ids: list = []):
         tickets = zenpy_client.search_export(type="ticket")
 
     for ticket in tickets:
-        subject = re.sub(r"\s+", " ", re.sub(r"[^a-zA-Z0-9 ]", "", ticket.raw_subject))
-        filename = f"{ticket.id} - {subject}.json"
-        jprint(f"Saving 's3://{s3_bucket}/{s3_support_prefix}tickets/{filename}'")
+        # subject = re.sub(r"\s+", " ", re.sub(r"[^a-zA-Z0-9 ]", "", ticket.raw_subject))
+        filename = f"gc3-{ticket.id}.json"
+        key = f"{s3_support_prefix}tickets/{filename}"
+        jprint(f"Saving 's3://{s3_bucket}/{key}'")
         s3_client.put_object(
-            Body=json.dumps(ticket.to_dict(), indent=4, default=str).encode("utf-8"),
+            Body=json.dumps(ticket.to_dict(), default=str).encode("utf-8"),
             Bucket=s3_bucket,
-            Key=f"{s3_support_prefix}tickets/{filename}",
+            Key=key,
         )
 
 
@@ -103,7 +104,7 @@ def save_helpcentre(article_ids: list = []):
 
         jprint(f"Saving 's3://{s3_bucket}/{s3_helpcentre_prefix}{filename}'")
         s3_client.put_object(
-            Body=json.dumps(file_obj, indent=4, default=str).encode("utf-8"),
+            Body=json.dumps(file_obj, default=str).encode("utf-8"),
             Bucket=s3_bucket,
             Key=f"{s3_helpcentre_prefix}{filename}",
         )
