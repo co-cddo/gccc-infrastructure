@@ -270,7 +270,7 @@ def extract_domain(text: str):
 def process_organisation(organisation: dict, organisation_pairs: dict):
     content_id = organisation.get("details", {}).get("content_id", None)
     if content_id:
-        raw_key = f"govuk/organisations/{content_id}.json"
+        raw_key = f"{key_prefix}/organisation-raw/{content_id}.json"
         jprint(f"Writing s3://{processed_bucket}/{raw_key}")
         s3object = s3.Object(processed_bucket, raw_key)
         s3object.put(
