@@ -45,6 +45,7 @@ jobs:
     
     - name: Build ZIP file
       run: |
+        echo "github.ref: ${{ github.ref }}"
         ls -lah
         bash build.sh
       working-directory: lambda/crawler-govuk-reference-content/
