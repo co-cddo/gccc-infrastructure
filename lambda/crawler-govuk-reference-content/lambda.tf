@@ -2,7 +2,7 @@ locals {
   lambda_name         = "crawler-govuk-reference-content"
   iam_role            = "lambda-role-crawler-govuk-reference-content-${terraform.workspace}"
   iam_policy          = "lambda-policy-crawler-govuk-reference-content-${terraform.workspace}"
-  cron_trigger        = "0 6 ? * MON *"
+  cron_trigger        = "0 5 ? * MON *"
   s3_processed_bucket = terraform.workspace == "production" ? "gc3-processed-a1205b9b-1e39-4d70" : "gccc-processed-a1205b9b-1e39-4d70"
 }
 
@@ -138,4 +138,24 @@ resource "aws_lambda_function" "lambda" {
       S3_PROCESSED_BUCKET = local.s3_processed_bucket
     }
   }
+}
+
+resource "aws_cloudwatch_event_rule" "time_trigger" {
+  is_enabled          = terraform.workspace == "production"
+  name                = "${local.lambda_name}-trigger"
+  schedule_expression = "cron(${local.cron_trigger})"
+}
+
+resource "aws_cloudwatch_event_target" "check_lambda" {
+  rule      = aws_cloudwatch_event_rule.time_trigger.name
+  target_id = "${local.lambda_name}-check_lambda"
+  arn       = aws_lambda_function.lambda.arn
+}
+
+resource "aws_lambda_permission" "allow_cloudwatch_to_call_lambda" {
+  statement_id  = "AllowExecutionFromCloudWatch"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.lambda.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.time_trigger.arn
 }
