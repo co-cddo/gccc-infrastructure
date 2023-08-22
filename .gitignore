@@ -1,6 +1,7 @@
 **/.terraform
 **/.terraform.*
 **/*.tfvars
+**/.test
 
 .*.sh
 .*.ps1
