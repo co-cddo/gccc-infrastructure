@@ -1,12 +1,15 @@
 import json
 import boto3
 import time
-import requests
+import httpx
 import re
-import math
+import os
 
 s3 = boto3.resource("s3")
-processed_bucket = "gccc-processed-a1205b9b-1e39-4d70"
+processed_bucket = os.environ["S3_PROCESSED_BUCKET"]
+httpx_version = httpx.__version__
+httpx_client = httpx.Client(http2=True, follow_redirects=True)
+key_prefix = "govuk/objects"
 
 
 def jprint(obj):
@@ -20,12 +23,29 @@ def jprint(obj):
     print(json.dumps(new_obj, default=str))
 
 
+def get_url_dict(url: str) -> dict:
+    res = {}
+
+    ua = f"httpx/{httpx_version} (Government Cyber Coordination Centre) github.com/co-cddo/gccc-infrastructure"
+    resp = httpx_client.get(url, headers={"user-agent": ua})
+    if (
+        resp
+        and str(resp.status_code).startswith("2")
+        and resp.headers.get("content-type", "").startswith("application/json")
+    ):
+        res = resp.json()
+
+    return res
+
+
 def lambda_handler(event, context):
-    if "organisation" in event:
+    if "detail-type" in event and event["detail-type"] == "Scheduled Event":
+        fetch_organisations()
+        fetch_services()
+    elif "organisation" in event:
         fetch_organisations()
     elif "service" in event:
-        # ...
-        print("service")
+        fetch_services()
     else:
         jprint("Don't know. Quitting.")
 
@@ -34,7 +54,7 @@ def fetch_services():
     try:
         count = 20
         api_url = f"https://www.gov.uk/api/search.json?filter_format=transaction&count={count}&start="
-        init_services = requests.get(f"{api_url}0").json()
+        init_services = get_url_dict(f"{api_url}0")
 
         services_raw = init_services["results"]
         entries = init_services["total"]
@@ -44,20 +64,45 @@ def fetch_services():
         while len(services_raw) < entries:
             start = len(services_raw)
             jprint(f"Processing from: {start}")
-            for_orgs = requests.get(f"{api_url}{start}").json()
+            for_orgs = get_url_dict(f"{api_url}{start}")
             services_raw.extend(for_orgs["results"])
+
+        simple_objects = []
+        full_objects = []
 
         for service in services_raw:
             link = service.get("link", None)
             if link:
                 try:
-                    service["content"] = requests.get(
+                    service["content"] = get_url_dict(
                         f"https://www.gov.uk/api/content/{link.strip('/')}"
-                    ).json()
+                    )
                 except Exception as e:
                     jprint(f"fetch_organisations:content API error:{e}")
 
-                process_service(service)
+                so, fo = process_service(service)
+                simple_objects.append(so)
+                full_objects.append(fo)
+
+        if simple_objects:
+            simple_key = f"{key_prefix}/simple-combined/services-simple.json"
+
+            jprint(f"Writing s3://{processed_bucket}/{simple_key}")
+            s3object = s3.Object(processed_bucket, simple_key)
+            s3object.put(
+                Body=(
+                    b"\n".join([json.dumps(x).encode("UTF-8") for x in simple_objects])
+                )
+            )
+
+        if full_objects:
+            full_key = f"{key_prefix}/services-combined/services-full.json"
+
+            jprint(f"Writing s3://{processed_bucket}/{full_key}")
+            s3object = s3.Object(processed_bucket, full_key)
+            s3object.put(
+                Body=(b"\n".join([json.dumps(x).encode("UTF-8") for x in full_objects]))
+            )
 
     except Exception as e:
         jprint(f"fetch_services:search API error:{e}")
@@ -99,28 +144,26 @@ def process_service(service: dict):
             ),
         }
 
-        # jprint(obj)
+        simple_key = f"{key_prefix}/simple-individual/{content_id}.json"
+        full_key = f"{key_prefix}/service-individual/{content_id}.json"
 
-        simple_key = f"objects/all/{content_id}.json"
-        full_key = f"objects/services/{content_id}.json"
+        simple_object = {"id": content_id, "type": "service"}
 
         jprint(f"Writing s3://{processed_bucket}/{simple_key}")
         s3object = s3.Object(processed_bucket, simple_key)
-        s3object.put(
-            Body=(
-                bytes(json.dumps({"id": content_id, "type": "service"}).encode("UTF-8"))
-            )
-        )
+        s3object.put(Body=(bytes(json.dumps(simple_object).encode("UTF-8"))))
 
         jprint(f"Writing s3://{processed_bucket}/{full_key}")
         s3object = s3.Object(processed_bucket, full_key)
         s3object.put(Body=(bytes(json.dumps(obj).encode("UTF-8"))))
 
+        return (simple_object, obj)
+
 
 def fetch_organisations():
     try:
         api_url = "https://www.gov.uk/api/organisations"
-        init_orgs = requests.get(api_url).json()
+        init_orgs = get_url_dict(api_url)
 
         organisations_raw = init_orgs["results"]
         jprint(f"Found {init_orgs['pages']} pages")
@@ -128,7 +171,7 @@ def fetch_organisations():
 
         for page in range(2, init_orgs["pages"] + 1):
             jprint(f"Processing page: {page}")
-            for_orgs = requests.get(f"{api_url}?page={page}").json()
+            for_orgs = get_url_dict(f"{api_url}?page={page}")
             organisations_raw.extend(for_orgs["results"])
 
         organisation_pairs = {
@@ -137,17 +180,43 @@ def fetch_organisations():
             if o["id"] and o["details"] and "content_id" in o["details"]
         }
 
+        simple_objects = []
+        full_objects = []
+
         for org in organisations_raw:
             slug = org.get("details", {}).get("slug", None)
             if slug:
                 try:
-                    org["content"] = requests.get(
+                    org["content"] = get_url_dict(
                         f"https://www.gov.uk/api/content/government/organisations/{slug}"
-                    ).json()
+                    )
                 except Exception as e:
                     jprint(f"fetch_organisations:content API error:{e}")
 
-            process_organisation(org, organisation_pairs)
+            so, fo = process_organisation(org, organisation_pairs)
+            simple_objects.append(so)
+            full_objects.append(fo)
+
+        if simple_objects:
+            simple_key = f"{key_prefix}/simple-combined/organisations-simple.json"
+
+            jprint(f"Writing s3://{processed_bucket}/{simple_key}")
+            s3object = s3.Object(processed_bucket, simple_key)
+            s3object.put(
+                Body=(
+                    b"\n".join([json.dumps(x).encode("UTF-8") for x in simple_objects])
+                )
+            )
+
+        if full_objects:
+            full_key = f"{key_prefix}/organisations-combined/organisations-full.json"
+
+            jprint(f"Writing s3://{processed_bucket}/{full_key}")
+            s3object = s3.Object(processed_bucket, full_key)
+            s3object.put(
+                Body=(b"\n".join([json.dumps(x).encode("UTF-8") for x in full_objects]))
+            )
+
     except Exception as e:
         jprint(f"fetch_organisations:organisations API error:{e}")
 
@@ -305,21 +374,16 @@ def process_organisation(organisation: dict, organisation_pairs: dict):
 
         # jprint(obj)
 
-        simple_key = f"objects/all/{content_id}.json"
-        full_key = f"objects/organisations/{content_id}.json"
+        simple_key = f"{key_prefix}/simple-individual/{content_id}.json"
+        full_key = f"{key_prefix}/organisation-individual/{content_id}.json"
 
         jprint(f"Writing s3://{processed_bucket}/{simple_key}")
+        simple_object = {"id": content_id, "type": "organisation"}
         s3object = s3.Object(processed_bucket, simple_key)
-        s3object.put(
-            Body=(
-                bytes(
-                    json.dumps({"id": content_id, "type": "organisation"}).encode(
-                        "UTF-8"
-                    )
-                )
-            )
-        )
+        s3object.put(Body=(bytes(json.dumps(simple_object).encode("UTF-8"))))
 
         jprint(f"Writing s3://{processed_bucket}/{full_key}")
         s3object = s3.Object(processed_bucket, full_key)
         s3object.put(Body=(bytes(json.dumps(obj).encode("UTF-8"))))
+
+        return (simple_object, obj)

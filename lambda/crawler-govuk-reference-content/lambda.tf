@@ -1,7 +1,9 @@
 locals {
-  lambda_name = "crawler-govuk-reference-content"
-  iam_role    = "lambda-role-crawler-govuk-reference-content-${terraform.workspace}"
-  iam_policy  = "lambda-policy-crawler-govuk-reference-content-${terraform.workspace}"
+  lambda_name         = "crawler-govuk-reference-content"
+  iam_role            = "lambda-role-crawler-govuk-reference-content-${terraform.workspace}"
+  iam_policy          = "lambda-policy-crawler-govuk-reference-content-${terraform.workspace}"
+  cron_trigger        = "0 6 ? * MON *"
+  s3_processed_bucket = terraform.workspace == "production" ? "gc3-processed-a1205b9b-1e39-4d70" : "gccc-processed-a1205b9b-1e39-4d70"
 }
 
 terraform {
@@ -70,7 +72,7 @@ resource "aws_iam_policy" "lambda_policy" {
           "s3:PutObject"
         ]
         Effect   = "Allow"
-        Resource = "arn:aws:s3:::gccc-processed-a1205b9b-1e39-4d70/govuk/*"
+        Resource = "arn:aws:s3:::${s3_processed_bucket}/govuk/objects/*"
       },
       {
         Action = [
@@ -105,6 +107,14 @@ data "aws_iam_policy_document" "arpd" {
   }
 }
 
+data "aws_lambda_layer_version" "standard" {
+  layer_name = "python311-standard-requirements"
+}
+
+data "aws_lambda_layer_version" "pull" {
+  layer_name = "python311-pull-requirements"
+}
+
 resource "aws_lambda_function" "lambda" {
   filename         = "target.zip"
   source_code_hash = filebase64sha256("target.zip")
@@ -112,23 +122,20 @@ resource "aws_lambda_function" "lambda" {
   function_name = local.lambda_name
   role          = aws_iam_role.lambda_role.arn
   handler       = "main.lambda_handler"
-  runtime       = "python3.9"
+  runtime       = "python3.11"
 
   memory_size = 4096
   timeout     = 900
 
-  lifecycle {
-    ignore_changes = [
-      environment.0.variables["GITHUB_TOKEN"]
-    ]
-  }
-
-  layers = []
+  layers = [
+    data.aws_lambda_layer_version.standard.arn,
+    data.aws_lambda_layer_version.pull.arn,
+  ]
 
   environment {
     variables = {
-      ENVIRONMENT  = terraform.workspace
-      GITHUB_TOKEN = ""
+      ENVIRONMENT         = terraform.workspace
+      S3_PROCESSED_BUCKET = local.s3_processed_bucket
     }
   }
 }
