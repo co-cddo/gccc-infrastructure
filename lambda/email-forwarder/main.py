@@ -250,7 +250,7 @@ def create_message(file_dict, new_to_email, original_recipient):
 
         message = {
             "Source": original_recipient,
-            "Destinations": new_to_email,
+            "Destinations": [new_to_email],
             "Data": mailobject.as_string(),
         }
 
@@ -266,7 +266,7 @@ def send_email(message):
         # Provide the contents of the email.
         response = client_ses.send_raw_email(
             Source=message["Source"],
-            Destinations=[message["Destinations"]],
+            Destinations=message["Destinations"],
             RawMessage={"Data": message["Data"]},
         )
 
