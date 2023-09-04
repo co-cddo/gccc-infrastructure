@@ -136,8 +136,11 @@ def process_send_as_email(mailobject, from_address: str = None, filename: str = 
             )
         # get and add attachments here
 
+    print("recipient_attachment:", recipient_attachment)
+
     if recipient_attachment:
         res.update(get_send_as_destinations_from_plain_text(recipient_attachment))
+        print("res:", res)
         if len(res["all_destinations"]) > 0:
             res["send_as"] = True
             if res["to"]:
@@ -196,11 +199,15 @@ def create_message(file_dict, new_to_email, original_recipient):
     if _sender_emails and len(_sender_emails) == 1:
         sender_email = _sender_emails[0]
 
+    print("sender_email:", sender_email)
+
     is_send_as = False
     if sender_email and sender_email in allowed_send_as_emails:
+        print("sender_email in allowed_send_as_emails!")
         psae = process_send_as_email(
             mailobject=mailobject, from_address=original_recipient, filename="send_as"
         )
+        print(psae)
         if psae["send_as"]:
             is_send_as = True
             message = {
