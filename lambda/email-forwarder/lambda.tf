@@ -29,11 +29,11 @@ resource "aws_lambda_function" "lambda" {
     }
   }
 
-  #lifecycle {
-  #  ignore_changes = [
-  #    last_modified
-  #  ]
-  #}
+  lifecycle {
+    ignore_changes = [
+      environment
+    ]
+  }
 
   depends_on = [
     aws_iam_role_policy_attachment.lambda_pa,
