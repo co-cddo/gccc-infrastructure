@@ -1,7 +1,6 @@
 import os
 import boto3
 import json
-import base64
 import time
 import random
 import email
@@ -61,6 +60,9 @@ def get_send_as_destinations_from_plain_text(text):
         "all_destinations": [],
     }
 
+    if type(text) == bytes:
+        text = text.decode("utf-8")
+
     if not text or type(text) != str:
         return res
 
@@ -114,23 +116,17 @@ def process_send_as_email(mailobject, from_address: str = None, filename: str = 
 
     recipient_attachment = None
     for part in mailobject.walk():
-        new_part = True
         part_fn = part.get_filename()
 
         if part_fn is not None and part_fn.startswith(filename):
-            recipient_attachment = part.get_payload()
-            cte = part.get("Content-Transfer-Encoding", "text")
-            pcs = part.get_content_charset()
-            if cte == "base64":
-                recipient_attachment = base64.b64decode(
-                    recipient_attachment.encode(pcs or "utf-8")
-                ).decode("utf-8")
-            new_part = False
+            recipient_attachment = part.get_payload(decode=True)
 
-        if new_part and not part.is_multipart() and not part_fn:
+        elif not part.is_multipart() and not part_fn:
+            content = part.get_payload(decode=True)
             new_parts.append(
                 {
-                    "content": part.get_payload(),
+                    "content": content,
+                    "maintype": part.get_content_maintype(),
                     "subtype": part.get_content_subtype(),
                 }
             )
@@ -144,15 +140,17 @@ def process_send_as_email(mailobject, from_address: str = None, filename: str = 
         if len(res["all_destinations"]) > 0:
             res["send_as"] = True
             if res["to"]:
-                new_email["To"] = "; ".join(res["to"])
+                new_email["To"] = ", ".join(res["to"])
             if res["cc"]:
-                new_email["Cc"] = "; ".join(res["cc"])
+                new_email["Cc"] = ", ".join(res["cc"])
             if res["bcc"]:
-                new_email["Bcc"] = "; ".join(res["bcc"])
+                new_email["Bcc"] = ", ".join(res["bcc"])
 
             for new_part in new_parts:
                 new_email.add_alternative(
-                    new_part["content"], subtype=new_part["subtype"]
+                    new_part["content"],
+                    maintype=new_part["maintype"],
+                    subtype=new_part["subtype"],
                 )
 
             res["new_mailobject"] = new_email
