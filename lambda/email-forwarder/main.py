@@ -97,27 +97,45 @@ def process_send_as_email(mailobject, from_address: str = None, filename: str = 
         "all_destinations": [],
         "new_mailobject": None,
     }
+
     if not filename or not from_address:
         return res
+
+    if not mailobject.is_multipart():
+        return res
+
     new_email = email.message.EmailMessage()
     new_email["Subject"] = mailobject.get(
         "Subject", "Government Cyber Coordination Centre"
     )
     new_email["From"] = from_address
+
+    new_parts = []
+
     recipient_attachment = None
-    if mailobject.is_multipart():
-        for part in mailobject.walk():
-            new_part = True
-            part_fn = part.get_filename()
-            if part_fn is not None:
-                if part_fn.startswith(filename):
-                    recipient_attachment = part.get_payload()
-                    new_part = False
-            if new_part and not part.is_multipart() and not part_fn:
-                new_email.add_alternative(
-                    part.get_payload(), subtype=part.get_content_subtype()
-                )
-            # get and add attachments here
+    for part in mailobject.walk():
+        new_part = True
+        part_fn = part.get_filename()
+
+        if part_fn is not None and part_fn.startswith(filename):
+            recipient_attachment = part.get_payload()
+            cte = part.get("Content-Transfer-Encoding", "text")
+            pcs = part.get_content_charset()
+            if cte == "base64":
+                recipient_attachment = base64.b64decode(
+                    recipient_attachment.encode(pcs or "utf-8")
+                ).decode("utf-8")
+            new_part = False
+
+        if new_part and not part.is_multipart() and not part_fn:
+            new_parts.append(
+                {
+                    "content": part.get_payload(),
+                    "subtype": part.get_content_subtype(),
+                }
+            )
+        # get and add attachments here
+
     if recipient_attachment:
         res.update(get_send_as_destinations_from_plain_text(recipient_attachment))
         if len(res["all_destinations"]) > 0:
@@ -128,7 +146,14 @@ def process_send_as_email(mailobject, from_address: str = None, filename: str = 
                 new_email["Cc"] = "; ".join(res["cc"])
             if res["bcc"]:
                 new_email["Bcc"] = "; ".join(res["bcc"])
+
+            for new_part in new_parts:
+                new_email.add_alternative(
+                    new_part["content"], subtype=new_part["subtype"]
+                )
+
             res["new_mailobject"] = new_email
+
     return res
 
 
@@ -277,6 +302,7 @@ def lambda_handler(event, context):
                     # Create the message.
                     message = create_message(file_dict, mapped_email, dest)
                     if message:
+                        print(message)
                         # Send the email and print the result.
                         result = send_email(message)
                         print(result)
