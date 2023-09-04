@@ -19,7 +19,7 @@ resource "aws_lambda_function" "lambda" {
   publish = true
 
   memory_size = 512
-  timeout     = 60
+  timeout     = 120
 
   environment {
     variables = {
