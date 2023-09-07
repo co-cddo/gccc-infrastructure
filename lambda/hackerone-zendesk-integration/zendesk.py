@@ -41,8 +41,10 @@ def create_or_update_zendesk_ticket(h1obj: dict):
 
     if h1obj["issue_tracker_reference_id"]:
         zticket = get_zendesk_ticket_by_id(h1obj["issue_tracker_reference_id"])
-
-    if not zticket:
+        if not zticket:
+            print("Reference ID exists, but ticket couldn't be found. Quitting.")
+            return None
+    else:
         zticket = get_zendesk_ticket_by_hackerone_id(h1obj["report_id"])
 
     if not zticket:
