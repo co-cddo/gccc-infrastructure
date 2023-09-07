@@ -9,6 +9,9 @@ from time import sleep
 
 def lambda_handler(event, context):
     if "report_id" in event:
+        # sleep to reduce likelihood of duplicate tickets being created:
+        sleep(5)
+        
         hackerone_report = hackerone.get_hackerone_report(report_id=event["report_id"])
         if hackerone_report:
             if hackerone_report.get("triaged_at", None) is None:
@@ -17,9 +20,6 @@ def lambda_handler(event, context):
                     event["report_id"],
                 )
             else:
-                # sleep for a random time to reduce likelihood of duplicate tickets being created:
-                sleep(randint(1, 10))
-
                 zid = zendesk.create_or_update_zendesk_ticket(hackerone_report)
 
                 print(
@@ -29,7 +29,9 @@ def lambda_handler(event, context):
                     )
                 )
 
-                if hackerone_report["issue_tracker_reference_id"]:
+                if not zid:
+                    print("Zendesk ticket not created or updated")
+                elif hackerone_report["issue_tracker_reference_id"]:
                     print(
                         "Found existing reference_id in HackerOne:",
                         hackerone_report["issue_tracker_reference_id"],
