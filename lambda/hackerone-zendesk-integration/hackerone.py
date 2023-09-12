@@ -6,23 +6,25 @@ import httpx
 hackerone_api_user = os.environ["HACKERONE_API_USER"]
 hackerone_api_pass = os.environ["HACKERONE_API_PASS"]
 
-hackerone_auth = base64.b64encode(
-    f"{hackerone_api_user}:{hackerone_api_pass}".encode("utf-8")
-).decode("utf-8")
+
+def get_hackerone_auth():
+    return base64.b64encode(
+        f"{hackerone_api_user}:{hackerone_api_pass}".encode("utf-8")
+    ).decode("utf-8")
 
 
 def set_hackerone_reference(hackerone_id, zendesk_id):
     headers = {
         "Content-Type": "application/json",
         "Accept": "application/json",
-        "Authorization": f"Basic {hackerone_auth}",
+        "Authorization": f"Basic {get_hackerone_auth()}",
     }
     data = {
         "data": {
             "type": "issue-tracker-reference-id",
             "attributes": {
                 "reference": str(zendesk_id),
-                "message": f"https://{os.environ['ZENDESK_SUBDOMAIN']}.zendesk.com/agent/tickets/{zendesk_id}",
+                "message": f"https://my.gc3.security.gov.uk/agent/tickets/{zendesk_id}",
             },
         }
     }
@@ -32,7 +34,7 @@ def set_hackerone_reference(hackerone_id, zendesk_id):
         headers = {
             "Content-Type": "application/json",
             "Accept": "application/json",
-            "Authorization": f"Basic {hackerone_auth}",
+            "Authorization": f"Basic {get_hackerone_auth()}",
         }
         hackerone_resp = client.post(
             f"https://api.hackerone.com/v1/reports/{hackerone_id}/issue_tracker_reference_id",
@@ -48,7 +50,7 @@ def get_hackerone_report(report_id):
     with httpx.Client() as client:
         headers = {
             "Accept": "application/json",
-            "Authorization": f"Basic {hackerone_auth}",
+            "Authorization": f"Basic {get_hackerone_auth()}",
         }
         hackerone_resp = client.get(
             f"https://api.hackerone.com/v1/reports/{report_id}",

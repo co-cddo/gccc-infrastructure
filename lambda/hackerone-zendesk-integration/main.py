@@ -10,8 +10,8 @@ from time import sleep
 def lambda_handler(event, context):
     if "report_id" in event:
         # sleep to reduce likelihood of duplicate tickets being created:
-        sleep(5)
-        
+        sleep(3)
+
         hackerone_report = hackerone.get_hackerone_report(report_id=event["report_id"])
         if hackerone_report:
             if hackerone_report.get("triaged_at", None) is None:
