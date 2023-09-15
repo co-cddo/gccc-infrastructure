@@ -124,7 +124,9 @@ def get_hackerone_report(report_id):
     res["reporter_username"] = h1_reporter.get("username", None)
 
     h1_assignee = h1_rels.get("assignee", {}).get("data", {}).get("attributes", {})
-    res["assigned_to"] = h1_assignee.get("name", None)
+    res["assigned_to"] = h1_assignee.get("name", None) or h1_assignee.get(
+        "username", None
+    )
 
     h1_weakness = h1_rels.get("weakness", {}).get("data", {}).get("attributes", {})
     res["weakness_name"] = h1_weakness.get("name", None)
