@@ -76,7 +76,7 @@ def create_or_update_zendesk_ticket(h1obj: dict):
 
     full_timestamps = []
     for ts in h1obj["full_timestamps"]:
-        tss = f"{ts.title().replace('_', ' ')}: {h1obj['full_timestamps'][ts]}"
+        tss = f"{ts.title().replace('_', ' ')}:\n{h1obj['full_timestamps'][ts]}"
         full_timestamps.append(tss)
     h1_timestamps_str = "\n".join(full_timestamps)
 
