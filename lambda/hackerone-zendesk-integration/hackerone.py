@@ -110,6 +110,16 @@ def get_hackerone_report(report_id):
 
     res["cves"] = ", ".join(h1_attrs.get("cve_ids", []))
 
+    h1_remguidance = (
+        h1_rels.get("automated_remediation_guidance", {})
+        .get("data", {})
+        .get("attributes", {})
+    )
+    res["automated_remediation_guidance"] = h1_remguidance.get("reference", None)
+
+    h1_program = h1_rels.get("program", {}).get("data", {}).get("attributes", {})
+    res["program"] = h1_program.get("handle", None)
+
     h1_reporter = h1_rels.get("reporter", {}).get("data", {}).get("attributes", {})
     res["reporter_username"] = h1_reporter.get("username", None)
 

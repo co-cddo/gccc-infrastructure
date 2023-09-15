@@ -95,6 +95,8 @@ def create_or_update_zendesk_ticket(h1obj: dict):
         CustomField(id=13630486759697, value=h1obj["weakness_name"]),
         CustomField(id=13630488020113, value=h1obj["weakness_external_id"]),
         # CustomField(id=13630617594897, value=h1obj["weakness_desc"]),
+        CustomField(id=18597528066321, value=h1obj["automated_remediation_guidance"]),
+        CustomField(id=18597505386129, value=h1obj["program"]),
         CustomField(id=18594542189457, value=h1obj["assigned_to"]),
         CustomField(id=13641072614417, value=h1obj["reporter_username"]),
         CustomField(id=18597329201681, value=h1_timestamps_str),
