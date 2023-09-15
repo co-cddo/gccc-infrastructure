@@ -74,6 +74,12 @@ def create_or_update_zendesk_ticket(h1obj: dict):
             author_id=zendesk_requester,
         )
 
+    full_timestamps = []
+    for ts in h1obj["full_timestamps"]:
+        tss = f"{ts.title().replace('_', ' ')}: {h1obj['full_timestamps'][ts]}"
+        full_timestamps.append(tss)
+    h1_timestamps_str = "\n".join(full_timestamps)
+
     zticket.subject = h1obj["title"]
     zticket.custom_fields = [
         CustomField(id=13630395133585, value=h1obj["report_id"]),
@@ -88,7 +94,10 @@ def create_or_update_zendesk_ticket(h1obj: dict):
         CustomField(id=13630515883409, value=h1obj["cves"]),
         CustomField(id=13630486759697, value=h1obj["weakness_name"]),
         CustomField(id=13630488020113, value=h1obj["weakness_external_id"]),
-        CustomField(id=13630617594897, value=h1obj["weakness_desc"]),
+        # CustomField(id=13630617594897, value=h1obj["weakness_desc"]),
+        CustomField(id=18594542189457, value=h1obj["assigned_to"]),
+        CustomField(id=13641072614417, value=h1obj["reporter_username"]),
+        CustomField(id=18597329201681, value=h1_timestamps_str),
     ]
     zenpy_client.tickets.update(zticket)
 

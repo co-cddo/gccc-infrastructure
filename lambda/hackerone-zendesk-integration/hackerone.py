@@ -45,101 +45,98 @@ def set_hackerone_reference(hackerone_id, zendesk_id):
 
 
 def get_hackerone_report(report_id):
-    h1obj = {}
-    hackerone_resp = None
+    httpxresp = None
     with httpx.Client() as client:
         headers = {
             "Accept": "application/json",
             "Authorization": f"Basic {get_hackerone_auth()}",
         }
-        hackerone_resp = client.get(
+        httpxresp = client.get(
             f"https://api.hackerone.com/v1/reports/{report_id}",
             headers=headers,
         )
+    if not httpxresp:
+        return None
 
-    if hackerone_resp:
-        h1resp = hackerone_resp.json()
-        h1_attrs = h1resp["data"]["attributes"]
+    h1_dict = httpxresp.json() or {}
+    h1_attrs = h1_dict.get("data", {}).get("attributes", {})
+    h1_rels = h1_dict.get("data", {}).get("relationships", {})
 
-    if h1_attrs:
-        h1obj = {
-            "report_id": report_id,
-            "report_url": f"https://hackerone.com/bugs?report_id={report_id}",
-            "weakness_name": None,
-            "weakness_external_id": None,
-            "weakness_desc": None,
-            "severity_rating": None,
-            "severity_score": None,
-            "severity_attack_complexity": None,
-            "severity_attack_vector": None,
-            "severity_availability": None,
-            "severity_confidentiality": None,
-            "severity_integrity": None,
-            "severity_privileges_required": None,
-            "severity_user_interaction": None,
-            "severity_scope": None,
-        }
+    res = {
+        "report_id": None,
+        "report_url": None,
+        "full_timestamps": {},
+    }
 
-        for x in [
-            "issue_tracker_reference_id",
-            "issue_tracker_reference_url",
-            "title",
-            "vulnerability_information",
-            "main_state",
-            "state",
-            "last_activity_at",
-            "last_public_activity_at",
-            "created_at",
-            "triaged_at",
-            "closed_at",
-            "last_public_activity_at",
-        ]:
-            if x in h1_attrs:
-                if x.endswith("_at") and h1_attrs[x] and "T" in h1_attrs[x]:
-                    h1_attrs[x] = h1_attrs[x].split("T")[0]
-                h1obj[x] = h1_attrs[x]
+    if h1_attrs or h1_rels:
+        res["report_id"] = report_id
+        res["report_url"] = f"https://hackerone.com/bugs?report_id={report_id}"
+    else:
+        return None
+
+    for x in [
+        "issue_tracker_reference_id",
+        "issue_tracker_reference_url",
+        "title",
+        "vulnerability_information",
+        "main_state",
+        "state",
+        "last_activity_at",
+        "last_public_activity_at",
+        "created_at",
+        "triaged_at",
+        "closed_at",
+    ]:
+        if x in h1_attrs:
+            if (
+                x.endswith("_at")
+                and h1_attrs[x]
+                and type(h1_attrs[x]) == str
+                and "T" in h1_attrs[x].upper()
+            ):
+                res["full_timestamps"][x] = h1_attrs[x].upper()
+                res[x] = h1_attrs[x].upper().split("T")[0]
+            elif type(h1_attrs[x]) == str:
+                res[x] = h1_attrs[x].strip()
             else:
-                h1obj[x] = None
-
-        if h1obj["state"] and h1obj["main_state"]:
-            h1obj["state"] = f"{h1obj['state'].title()} ({h1obj['main_state'].title()})"
+                res[x] = h1_attrs[x]
         else:
-            h1obj["state"] = "Unknown"
+            res[x] = None
 
-        h1obj["cves"] = ", ".join(h1resp["data"]["attributes"]["cve_ids"])
+    if res["state"] and res["main_state"]:
+        res["state"] = f"{res['state'].title()} ({res['main_state'].title()})"
+    else:
+        res["state"] = "Unknown"
 
-        if (
-            "weakness" in h1resp["data"]["relationships"]
-            and "data" in h1resp["data"]["relationships"]["weakness"]
-            and "attributes" in h1resp["data"]["relationships"]["weakness"]["data"]
-        ):
-            h1_weakness = h1resp["data"]["relationships"]["weakness"]["data"][
-                "attributes"
-            ]
-            h1obj["weakness_name"] = h1_weakness["name"]
-            h1obj["weakness_external_id"] = h1_weakness["external_id"].upper()
-            h1obj["weakness_desc"] = h1_weakness["description"]
+    res["cves"] = ", ".join(h1_attrs.get("cve_ids", []))
 
-        if (
-            "severity" in h1resp["data"]["relationships"]
-            and "data" in h1resp["data"]["relationships"]["severity"]
-            and "attributes" in h1resp["data"]["relationships"]["severity"]["data"]
-        ):
-            h1_sev = h1resp["data"]["relationships"]["severity"]["data"]["attributes"]
+    h1_reporter = h1_rels.get("reporter", {}).get("data", {}).get("attributes", {})
+    res["reporter_username"] = h1_reporter.get("username", None)
 
-            for sx in [
-                "rating",
-                "score",
-                "attack_complexity",
-                "attack_vector",
-                "availability",
-                "confidentiality",
-                "integrity",
-                "privileges_required",
-                "user_interaction",
-                "scope",
-            ]:
-                if sx in h1_sev:
-                    h1obj[f"severity_{sx}"] = h1_sev[sx]
+    h1_assignee = h1_rels.get("assignee", {}).get("data", {}).get("attributes", {})
+    res["assigned_to"] = h1_assignee.get("name", None)
 
-    return h1obj
+    h1_weakness = h1_rels.get("weakness", {}).get("data", {}).get("attributes", {})
+    res["weakness_name"] = h1_weakness.get("name", None)
+    res["weakness_external_id"] = h1_weakness.get("external_id", "").upper()
+    res["weakness_desc"] = h1_weakness.get("description", "").upper()
+
+    h1_sev = h1_rels.get("severity", {}).get("data", {}).get("attributes", {})
+    for sx in [
+        "rating",
+        "score",
+        "attack_complexity",
+        "attack_vector",
+        "availability",
+        "confidentiality",
+        "integrity",
+        "privileges_required",
+        "user_interaction",
+        "scope",
+    ]:
+        if sx in h1_sev:
+            res[f"severity_{sx}"] = h1_sev[sx]
+        else:
+            res[f"severity_{sx}"] = None
+
+    return res
