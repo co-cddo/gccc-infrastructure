@@ -20,6 +20,7 @@ forward_mapping = {
     "report": ["im@gccc.zendesk.com"],
     "vm": ["vm@gccc.zendesk.com"],
     "data": ["data@gccc.zendesk.com"],
+    "threat": ["threat@gccc.zendesk.com"],
     "ollie": ["oliver.chalk@digital.cabinet-office.gov.uk"],
 }
 
