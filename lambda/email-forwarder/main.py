@@ -8,24 +8,57 @@ import email
 from botocore.exceptions import ClientError
 from botocore.client import Config
 
-region = os.environ["Region"]
-incoming_email_bucket = os.environ["MailS3Bucket"]
-system_domain = os.environ["MailSenderDomain"]
+region = os.getenv("Region", None)
+incoming_email_bucket = os.getenv("MailS3Bucket", None)
+system_domain = os.getenv("MailSenderDomain", None)
 
 client_s3 = boto3.client("s3", config=Config(signature_version="s3v4"))
 
 forward_mapping = {
-    "contact": ["contact@gccc.zendesk.com"],
-    "security": ["contact@gccc.zendesk.com"],
-    "im": ["im@gccc.zendesk.com"],
-    "report": ["im@gccc.zendesk.com"],
-    "incident": ["im@gccc.zendesk.com"],
-    "incidents": ["im@gccc.zendesk.com"],
-    "vm": ["vm@gccc.zendesk.com"],
-    "vulnerability": ["vm@gccc.zendesk.com"],
-    "data": ["data@gccc.zendesk.com"],
-    "threat": ["threat@gccc.zendesk.com"],
-    "ollie": ["oliver.chalk@digital.cabinet-office.gov.uk"],
+    "contact": {
+        "system_email": "contact@gccc.zendesk.com",
+        "reply_from": "contact@gc3.security.gov.uk",
+    },
+    "security": {
+        "system_email": "contact@gccc.zendesk.com",
+        "reply_from": "contact@gc3.security.gov.uk",
+    },
+    "im": {
+        "system_email": "im@gccc.zendesk.com",
+        "reply_from": "im@gc3.security.gov.uk",
+    },
+    "report": {
+        "system_email": "im@gccc.zendesk.com",
+        "reply_from": "im@gc3.security.gov.uk",
+    },
+    "incident": {
+        "system_email": "im@gccc.zendesk.com",
+        "reply_from": "im@gc3.security.gov.uk",
+    },
+    "incidents": {
+        "system_email": "im@gccc.zendesk.com",
+        "reply_from": "im@gc3.security.gov.uk",
+    },
+    "vm": {
+        "system_email": "vm@gccc.zendesk.com",
+        "reply_from": "vm@gc3.security.gov.uk",
+    },
+    "vulnerability": {
+        "system_email": "vm@gccc.zendesk.com",
+        "reply_from": "vm@gc3.security.gov.uk",
+    },
+    "data": {
+        "system_email": "data@gccc.zendesk.com",
+        "reply_from": "data@gc3.security.gov.uk",
+    },
+    "threat": {
+        "system_email": "threat@gccc.zendesk.com",
+        "reply_from": "threat@gc3.security.gov.uk",
+    },
+    "ollie": {
+        "system_email": "oliver.chalk@digital.cabinet-office.gov.uk",
+        "reply_from": "ollie@gc3.security.gov.uk",
+    },
 }
 
 _asam = os.getenv("allowed_send_as_emails", "")
@@ -33,12 +66,10 @@ allowed_send_as_emails = [x.lower().strip() for x in _asam.split(",") if "@" in 
 
 
 def get_forward_mappings(email: str):
-    for f in forward_mapping:
-        if email.startswith(f):
-            return forward_mapping[f]
-        if email.endswith(f):
-            return forward_mapping[f]
-    return []
+    for fm in forward_mapping:
+        if email.startswith(f"{fm}@"):
+            return forward_mapping[fm]
+    return {}
 
 
 def get_message_from_s3(object_path):
@@ -310,7 +341,11 @@ def lambda_handler(event, context):
             for mapped_email in get_forward_mappings(dest):
                 if mapped_email:
                     # Create the message.
-                    message = create_message(file_dict, mapped_email, dest)
+                    message = create_message(
+                        file_dict,
+                        mapped_email["system_email"],
+                        mapped_email["reply_from"],
+                    )
                     if message:
                         print(message)
                         # Send the email and print the result.
