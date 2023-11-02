@@ -16,9 +16,13 @@ client_s3 = boto3.client("s3", config=Config(signature_version="s3v4"))
 
 forward_mapping = {
     "contact": ["contact@gccc.zendesk.com"],
+    "security": ["contact@gccc.zendesk.com"],
     "im": ["im@gccc.zendesk.com"],
     "report": ["im@gccc.zendesk.com"],
+    "incident": ["im@gccc.zendesk.com"],
+    "incidents": ["im@gccc.zendesk.com"],
     "vm": ["vm@gccc.zendesk.com"],
+    "vulnerability": ["vm@gccc.zendesk.com"],
     "data": ["data@gccc.zendesk.com"],
     "threat": ["threat@gccc.zendesk.com"],
     "ollie": ["oliver.chalk@digital.cabinet-office.gov.uk"],
