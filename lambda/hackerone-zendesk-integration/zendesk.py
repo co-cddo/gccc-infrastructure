@@ -80,7 +80,7 @@ def create_or_update_zendesk_ticket(h1obj: dict):
         full_timestamps.append(tss)
     h1_timestamps_str = "\n".join(full_timestamps)
 
-    zticket.subject = h1obj["title"]
+    # zticket.subject = h1obj["title"]
     zticket.custom_fields = [
         CustomField(id=13630395133585, value=h1obj["report_id"]),
         CustomField(id=13630685790097, value=h1obj["report_url"]),
