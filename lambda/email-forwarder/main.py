@@ -65,7 +65,7 @@ _asam = os.getenv("allowed_send_as_emails", "")
 allowed_send_as_emails = [x.lower().strip() for x in _asam.split(",") if "@" in x]
 
 
-def get_forward_mappings(email: str):
+def get_forward_mappings(email: str) -> dict:
     for fm in forward_mapping:
         if email.startswith(f"{fm}@"):
             return forward_mapping[fm]
@@ -338,19 +338,19 @@ def lambda_handler(event, context):
             r.lower() for r in event["Records"][0]["ses"]["receipt"]["recipients"]
         ]
         for dest in destinations:
-            for mapped_email in get_forward_mappings(dest):
-                if mapped_email:
-                    # Create the message.
-                    message = create_message(
-                        file_dict,
-                        mapped_email["system_email"],
-                        mapped_email["reply_from"],
-                    )
-                    if message:
-                        print(message)
-                        # Send the email and print the result.
-                        result = send_email(message)
-                        print(result)
+            mapped_email = get_forward_mappings(dest)
+            if mapped_email:
+                # Create the message.
+                message = create_message(
+                    file_dict,
+                    mapped_email["system_email"],
+                    mapped_email["reply_from"],
+                )
+                if message:
+                    print(message)
+                    # Send the email and print the result.
+                    result = send_email(message)
+                    print(result)
 
         tag_proc_resp = client_s3.put_object_tagging(
             Bucket=incoming_email_bucket,
