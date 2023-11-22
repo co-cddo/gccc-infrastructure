@@ -55,6 +55,10 @@ forward_mapping = {
         "system_email": "threat@gccc.zendesk.com",
         "reply_from": "threat@gc3.security.gov.uk",
     },
+    "tech": {
+        "system_email": "tech@gccc.zendesk.com",
+        "reply_from": "tech@gc3.security.gov.uk",
+    },
     "ollie": {
         "system_email": "oliver.chalk@digital.cabinet-office.gov.uk",
         "reply_from": "ollie@gc3.security.gov.uk",
