@@ -47,6 +47,10 @@ forward_mapping = {
         "system_email": "vm@gccc.zendesk.com",
         "reply_from": "vm@gc3.security.gov.uk",
     },
+    "vulnerabilities": {
+        "system_email": "vm@gccc.zendesk.com",
+        "reply_from": "vm@gc3.security.gov.uk",
+    },
     "data": {
         "system_email": "data@gccc.zendesk.com",
         "reply_from": "data@gc3.security.gov.uk",
