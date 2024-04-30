@@ -7,7 +7,7 @@ from lambda_.zendesk_backup import main as zendesk_backup
 
 @pytest.fixture(autouse=True)
 def mock_env_vars():
-    with mock.patch.dict(os.environ, values={}):
+    with mock.patch.dict(os.environ, values={"S3_BUCKET": "test"}):
         yield
 
 
@@ -37,11 +37,15 @@ def zendesk_backup_event():
         }
     }
 
+
 @pytest.fixture
 def json_ticket() -> dict[str, str]:
     return {
         "created_at": "2024-03-15T15:50:18Z"
     }
 
+
 def test_athena_datetime(json_ticket):
-    assert zendesk_backup.add_athena_datetimes(json_ticket) == {json_ticket.update({"athena_created_at": "2024-03-15 15:50:18"})}
+    ticket_under_test = zendesk_backup.add_athena_datetimes(json_ticket)
+    json_ticket.update({"created_at_athena": "2024-03-15 15:50:18"})
+    assert ticket_under_test == json_ticket
