@@ -1,5 +1,7 @@
 import os
 import json
+from typing import Optional
+
 import boto3
 import time
 import re
@@ -54,12 +56,15 @@ def add_athena_datetimes(d: dict = {}) -> dict:
     return res
 
 
-def save_support(ticket_ids: list = []):
-    tickets = []
+def save_support(ticket_ids: Optional[list] = None):
+    """
+    Save support tickets from Zendesk. Additionally, add a datetime to them
 
+    :param ticket_ids:
+    :return:
+    """
     if ticket_ids:
-        for ticket_id in ticket_ids:
-            tickets.append(zenpy_client.tickets(id=str(ticket_id)))
+        tickets = [zenpy_client.tickets(id=str(ticket_id)) for ticket_id in ticket_ids]
     else:
         tickets = zenpy_client.search_export(type="ticket")
 
