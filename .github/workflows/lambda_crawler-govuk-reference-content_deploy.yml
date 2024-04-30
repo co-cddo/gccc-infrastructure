@@ -4,7 +4,7 @@ on:
   push:
     branches: [ "main" ]
     paths:
-      - lambda/crawler-govuk-reference-content/**
+      - lambda_/crawler-govuk-reference-content/**
       - .github/workflows/lambda_crawler-govuk-reference-content_deploy.yml
   workflow_dispatch:
 env:
@@ -48,7 +48,7 @@ jobs:
         echo "github.ref: ${{ github.ref }}"
         ls -lah
         bash build.sh
-      working-directory: lambda/crawler-govuk-reference-content/
+      working-directory: lambda_/crawler-govuk-reference-content/
     
     - name: configure aws credentials
       uses: aws-actions/configure-aws-credentials@v2
@@ -61,17 +61,17 @@ jobs:
       run: |
         aws sts get-caller-identity
         ls -lah
-      working-directory: lambda/crawler-govuk-reference-content/
+      working-directory: lambda_/crawler-govuk-reference-content/
 
     # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
     - name: Terraform Init
       run: terraform init
-      working-directory: lambda/crawler-govuk-reference-content/
+      working-directory: lambda_/crawler-govuk-reference-content/
 
     # Checks that all Terraform configuration files adhere to a canonical format
     - name: Terraform Format
       run: terraform fmt -check
-      working-directory: lambda/crawler-govuk-reference-content/
+      working-directory: lambda_/crawler-govuk-reference-content/
 
     # Generates an execution plan for Terraform
     - name: Terraform Apply
@@ -83,4 +83,4 @@ jobs:
           -var="production_iam_role=${{ secrets.PRODUCTION_IAM_ROLE }}"
       env:
         TERRAFORM_WORKSPACE: ${{ matrix.environment }}
-      working-directory: lambda/crawler-govuk-reference-content/
+      working-directory: lambda_/crawler-govuk-reference-content/
