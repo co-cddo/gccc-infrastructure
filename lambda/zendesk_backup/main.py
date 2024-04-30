@@ -1,6 +1,6 @@
 import os
 import json
-from typing import Optional
+from typing import Optional, Union
 
 import boto3
 import time
@@ -43,16 +43,23 @@ def get_key(obj: dict) -> str:
     return res
 
 
-def add_athena_datetimes(d: dict = {}) -> dict:
-    res = {}
-    for key in d:
-        if d[key] and type(d[key]) == str:
-            if re.match("(?i)2[\d\-]+t\d\d:", d[key]):
-                res[f"{key}_athena"] = (
-                    d[key].lower().replace("t", " ").replace("z", "").split(".")[0]
-                )
+def add_athena_datetimes(json_dict: dict[str, Union[int, str, dict, list]]) -> dict:
+    """
+    Take a JSON formatted dictionary. Find a string that contains this pattern: a 2, followed by any number of digits,
+    followed by a T/t, followed by two digits, followed by a colon. Having found that, replace the 't' with a space,
+    remove the z (we are assuming there's a 'z' in this), and then split the string on the dots. Only take the first
+    section of this newly split string, and add it back to the dictionary under the key f"{key}_athena"
 
-    res.update(d)
+    :param json_dict:
+    :return:
+    """
+    res = {}
+    for key, value in json_dict.items():
+        if type(value) is str:
+            if re.match(r"(?i)2[\d\-]+t\d\d:", value):
+                res[f"{key}_athena"] = (value.lower().replace("t", " ").replace("z", "").split(".")[0])
+
+    res.update(json_dict)
     return res
 
 
