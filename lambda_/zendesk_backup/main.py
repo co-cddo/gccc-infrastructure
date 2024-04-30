@@ -5,22 +5,33 @@ from typing import Optional, Union
 import boto3
 import time
 import re
-
+import functools
 from zenpy import Zenpy
 
-s3_bucket = os.environ["S3_BUCKET"]
-s3_client = boto3.client("s3")
+
+@functools.cache
+def get_s3_bucket() -> str:
+    return os.environ["S3_BUCKET"]
+
+
+@functools.cache
+def s3_client():
+    return boto3.client("s3")
+
 
 s3_helpcentre_prefix = "helpcentre/"
 s3_support_prefix = "support/"
 
-zendesk_creds = {
-    "email": os.environ["ZENDESK_API_EMAIL"],
-    "token": os.environ["ZENDESK_API_KEY"],
-    "subdomain": os.environ["ZENDESK_SUBDOMAIN"],
-}
 
-zenpy_client = Zenpy(**zendesk_creds)
+@functools.cache
+def zenpy_client() -> Zenpy:
+    zendesk_creds = {
+        "email": os.environ["ZENDESK_API_EMAIL"],
+        "token": os.environ["ZENDESK_API_KEY"],
+        "subdomain": os.environ["ZENDESK_SUBDOMAIN"],
+    }
+
+    return Zenpy(**zendesk_creds)
 
 
 def jprint(obj):
@@ -70,10 +81,11 @@ def save_support(ticket_ids: Optional[list] = None):
     :param ticket_ids:
     :return:
     """
+    s3_bucket = get_s3_bucket
     if ticket_ids:
-        tickets = [zenpy_client.tickets(id=str(ticket_id)) for ticket_id in ticket_ids]
+        tickets = [zenpy_client().tickets(id=str(ticket_id)) for ticket_id in ticket_ids]
     else:
-        tickets = zenpy_client.search_export(type="ticket")
+        tickets = zenpy_client().search_export(type="ticket")
 
     for ticket in tickets:
         # subject = re.sub(r"\s+", " ", re.sub(r"[^a-zA-Z0-9 ]", "", ticket.raw_subject))
@@ -83,7 +95,7 @@ def save_support(ticket_ids: Optional[list] = None):
 
         dobj = add_athena_datetimes(ticket.to_dict())
 
-        s3_client.put_object(
+        s3_client().put_object(
             Body=json.dumps(dobj, default=str).encode("utf-8"),
             Bucket=s3_bucket,
             Key=key,
@@ -91,16 +103,17 @@ def save_support(ticket_ids: Optional[list] = None):
 
 
 def save_helpcentre(article_ids: list = []):
+    s3_bucket = get_s3_bucket()
     files = {}
 
-    categories = zenpy_client.help_center.categories()
+    categories = zenpy_client().help_center.categories()
     for category in categories:
         category_key = get_key(category.to_dict())
         if category_key:
             if article_ids == []:
                 files[category_key] = category.to_dict()
 
-            sections = zenpy_client.help_center.sections(category_id=category.id)
+            sections = zenpy_client().help_center.sections(category_id=category.id)
             for section in sections:
                 if section.category_id == category.id:
                     section_ref = get_key(section.to_dict())
@@ -109,7 +122,7 @@ def save_helpcentre(article_ids: list = []):
                         if article_ids == []:
                             files[section_key] = section.to_dict()
 
-                        articles = zenpy_client.help_center.articles(
+                        articles = zenpy_client().help_center.articles(
                             section_id=section.id
                         )
                         for article in articles:
@@ -133,14 +146,14 @@ def save_helpcentre(article_ids: list = []):
         wdt = add_athena_datetimes(file_obj)
 
         jprint(f"Saving 's3://{s3_bucket}/{s3_helpcentre_prefix}{filename}'")
-        s3_client.put_object(
+        s3_client().put_object(
             Body=json.dumps(wdt, default=str).encode("utf-8"),
             Bucket=s3_bucket,
             Key=f"{s3_helpcentre_prefix}{filename}",
         )
         if html and html_filename:
             jprint(f"Saving 's3://{s3_bucket}/{s3_helpcentre_prefix}{html_filename}'")
-            s3_client.put_object(
+            s3_client().put_object(
                 Body=html.encode("utf-8"),
                 Bucket=s3_bucket,
                 Key=f"{s3_helpcentre_prefix}{html_filename}",
