@@ -1,8 +1,7 @@
 import dataclasses
 import os
 import json
-from typing import Optional, Union
-import da
+from typing import Optional, Union, Literal, Any
 import boto3
 import time
 import re
@@ -133,6 +132,36 @@ class ZendeskArticle(ZendeskObject):
     section_id: str
 
 
+ObjectTypes = Literal["article", "section"]
+
+
+def get_relations(subject: ObjectTypes) -> dict[str, ObjectTypes]:
+    relations = {
+        "article": {
+            "parent": "section"
+        },
+        "section": {
+            "parent": "category"
+        }
+    }
+    return relations[subject]
+
+
+def extract_substructure(object_type: ObjectTypes, zendesk_object: ZendeskObject, parent_id: str, parent_key: str,
+                         article_ids: list) -> tuple[dict, str]:
+    relations = get_relations(object_type)
+    parent_type = relations["parent"]
+    substructure = {}
+    parent_type_id = f"{parent_type}_id"
+    if zendesk_object.__getattribute__(parent_type_id) == parent_id:
+        object_ref = get_key(zendesk_object.to_dict())
+        if object_ref:
+            object_key = f"{parent_key}/{object_ref}"
+            if article_ids == [] or zendesk_object.id in article_ids:
+                substructure = {object_key: zendesk_object.to_dict()}
+    return substructure, object_key
+
+
 def save_helpcentre(article_ids: list = []):
     s3_bucket = get_s3_bucket()
     files = {}
@@ -146,23 +175,25 @@ def save_helpcentre(article_ids: list = []):
 
             sections = zenpy_client().help_center.sections(category_id=category.id)
             for section in sections:
-                if section.category_id == category.id:
-                    section_ref = get_key(section.to_dict())
-                    if section_ref:
-                        section_key = f"{category_key}/{section_ref}"
-                        if article_ids == []:
-                            files[section_key] = section.to_dict()
+                section_file, section_key = extract_substructure(
+                    object_type="section",
+                    zendesk_object=section,
+                    parent_id=category.id,
+                    parent_key=category_key,
+                    article_ids=article_ids
+                )
+                files.update(section_file)
 
-                        articles = zenpy_client().help_center.articles(
-                            section_id=section.id
-                        )
-                        for article in articles:
-                            if article.section_id == section.id:
-                                article_ref = get_key(article.to_dict())
-                                if article_ref:
-                                    article_key = f"{section_key}/{article_ref}"
-                                    if article_ids == [] or article.id in article_ids:
-                                        files[article_key] = article.to_dict()
+                articles = zenpy_client().help_center.articles(section_id=section.id)
+                for article in articles:
+                    article_file, _ = extract_substructure(
+                        object_type="article",
+                        zendesk_object=article,
+                        parent_id=section.id,
+                        parent_key=section_key,
+                        article_ids=article_ids,
+                    )
+                    files.update(article_file)
 
     for file in files:
         filename = f"{file}.json"
