@@ -162,15 +162,21 @@ def extract_substructure(object_type: ObjectTypes, zendesk_object: ZendeskObject
     return substructure, object_key
 
 
-def save_helpcentre(article_ids: list = []):
-    s3_bucket = get_s3_bucket()
+def extract_helpcenter(article_ids: list) -> dict[str, dict]:
+    """
+    This takes a complex, nested set of dictionaries and flattens them into a more simple structure. With more time,
+    we could make this recursive and very simple. However, it's good enough as it is
+
+    :param article_ids:
+    :return:
+    """
     files = {}
 
     categories = zenpy_client().help_center.categories()
     for category in categories:
         category_key = get_key(category.to_dict())
         if category_key:
-            if article_ids == []:
+            if not article_ids:
                 files[category_key] = category.to_dict()
 
             sections = zenpy_client().help_center.sections(category_id=category.id)
@@ -194,6 +200,15 @@ def save_helpcentre(article_ids: list = []):
                         article_ids=article_ids,
                     )
                     files.update(article_file)
+    return files
+
+
+def save_helpcentre(article_ids=None):
+    if article_ids is None:
+        article_ids = []
+
+    s3_bucket = get_s3_bucket()
+    files = extract_helpcenter(article_ids)
 
     for file in files:
         filename = f"{file}.json"
