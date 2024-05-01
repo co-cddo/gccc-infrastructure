@@ -66,9 +66,8 @@ def add_athena_datetimes(json_dict: dict[str, Union[int, str, dict, list]]) -> d
     """
     res = {}
     for key, value in json_dict.items():
-        if type(value) is str:
-            if re.match(r"(?i)2[\d\-]+t\d\d:", value):
-                res[f"{key}_athena"] = (value.lower().replace("t", " ").replace("z", "").split(".")[0])
+        if type(value) is str and re.match(r"(?i)2[\d\-]+t\d\d:", value):
+            res[f"{key}_athena"] = (value.lower().replace("t", " ").replace("z", "").split(".")[0])
 
     res.update(json_dict)
     return res
