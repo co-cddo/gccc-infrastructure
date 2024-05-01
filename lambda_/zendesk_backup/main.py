@@ -45,7 +45,15 @@ def jprint(obj):
     print(json.dumps(new_obj, default=str))
 
 
-def get_key(obj: dict) -> str:
+def get_key(obj: Optional[dict[str, Any]]) -> Optional[str]:
+    """
+    Get a URL from a dictionary and return the string consisting of the last two slash-separated elements, ie:
+    >>> get_key({"html_url": "example.com/a/long/path"})
+    long/path
+
+    :param obj:
+    :return:
+    """
     res = None
     if obj and "html_url" in obj and "/" in obj["html_url"]:
         html_url_split = obj["html_url"].rsplit("/", 2)

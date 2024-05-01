@@ -56,3 +56,8 @@ def test_lambda_handler(zendesk_backup_event):
         zendesk_backup.lambda_handler(**zendesk_backup_event)
         mock_save_helpcentre.assert_called_once_with()
         mock_save_support.assert_called_once_with()
+
+
+def test_get_key():
+    dictionary = {"html_url": "example.com/a/long/path"}
+    assert zendesk_backup.get_key(dictionary) == "long/path"
