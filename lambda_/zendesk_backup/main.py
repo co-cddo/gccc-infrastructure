@@ -117,21 +117,6 @@ class ZendeskObject:
     to_dict = dataclasses.asdict
 
 
-@dataclasses.dataclass
-class ZendeskCategory(ZendeskObject):
-    id: str
-
-
-@dataclasses.dataclass
-class ZendeskSection(ZendeskObject):
-    category_id: str
-
-
-@dataclasses.dataclass
-class ZendeskArticle(ZendeskObject):
-    section_id: str
-
-
 ObjectTypes = Literal["article", "section"]
 
 

@@ -1,10 +1,11 @@
+import dataclasses
 import os
 from unittest import mock
 from unittest.mock import Mock, call
 
 import pytest
 from lambda_.zendesk_backup import main as zendesk_backup
-from lambda_.zendesk_backup.main import ZendeskCategory, ZendeskSection, ZendeskArticle
+from lambda_.zendesk_backup.main import ZendeskObject
 
 
 @pytest.fixture(autouse=True)
@@ -89,3 +90,18 @@ def test_save_helpcenter(s3_client: Mock, zenpy_client: Mock):
         ],
         any_order=True
     )
+
+
+@dataclasses.dataclass
+class ZendeskCategory(ZendeskObject):
+    id: str
+
+
+@dataclasses.dataclass
+class ZendeskSection(ZendeskObject):
+    category_id: str
+
+
+@dataclasses.dataclass
+class ZendeskArticle(ZendeskObject):
+    section_id: str
