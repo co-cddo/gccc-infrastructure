@@ -1,7 +1,8 @@
+import dataclasses
 import os
 import json
 from typing import Optional, Union
-
+import da
 import boto3
 import time
 import re
@@ -107,6 +108,29 @@ def save_support(ticket_ids: Optional[list] = None):
             Bucket=s3_bucket,
             Key=key,
         )
+
+
+@dataclasses.dataclass
+class ZendeskObject:
+    html_url: str
+    id: str
+
+    to_dict = dataclasses.asdict
+
+
+@dataclasses.dataclass
+class ZendeskCategory(ZendeskObject):
+    id: str
+
+
+@dataclasses.dataclass
+class ZendeskSection(ZendeskObject):
+    category_id: str
+
+
+@dataclasses.dataclass
+class ZendeskArticle(ZendeskObject):
+    section_id: str
 
 
 def save_helpcentre(article_ids: list = []):

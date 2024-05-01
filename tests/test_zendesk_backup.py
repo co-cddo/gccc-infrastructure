@@ -1,8 +1,10 @@
 import os
 from unittest import mock
+from unittest.mock import Mock, call
 
 import pytest
 from lambda_.zendesk_backup import main as zendesk_backup
+from lambda_.zendesk_backup.main import ZendeskCategory, ZendeskSection, ZendeskArticle
 
 
 @pytest.fixture(autouse=True)
@@ -61,3 +63,29 @@ def test_lambda_handler(zendesk_backup_event):
 def test_get_key():
     dictionary = {"html_url": "example.com/a/long/path"}
     assert zendesk_backup.get_key(dictionary) == "long/path"
+
+
+@mock.patch("lambda_.zendesk_backup.main.zenpy_client")
+@mock.patch("lambda_.zendesk_backup.main.s3_client")
+def test_save_helpcenter(s3_client: Mock, zenpy_client: Mock):
+    category = ZendeskCategory("example.com/example/path", id="category_id")
+    section = ZendeskSection(category_id=category.id, html_url="example.com/section/path", id="section_id")
+    article = ZendeskArticle(html_url="example.com/article/path", section_id=section.id, id="article_id")
+    zenpy_client.return_value.help_center.categories.return_value = [category]
+    zenpy_client.return_value.help_center.sections.return_value = [section]
+    zenpy_client.return_value.help_center.articles.return_value = [article]
+    zendesk_backup.save_helpcentre()
+    s3_put: Mock = s3_client.return_value.put_object
+    s3_put.assert_has_calls(
+        [
+            call(Body=b'{"html_url": "example.com/example/path", "id": "category_id"}', Bucket='test',
+                 Key='helpcentre/example/path.json'),
+            call(
+                Body=b'{"html_url": "example.com/section/path", "id": "section_id", "category_id": "category_id"}',
+                Bucket='test', Key='helpcentre/example/path/section/path.json'),
+            call(
+                Body=b'{"html_url": "example.com/article/path", "id": "article_id", "section_id": "section_id"}',
+                Bucket='test', Key='helpcentre/example/path/section/path/article/path.json')
+        ],
+        any_order=True
+    )
