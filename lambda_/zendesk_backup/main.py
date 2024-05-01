@@ -160,6 +160,14 @@ def save_helpcentre(article_ids: list = []):
 
 
 def lambda_handler(event, context):
+    """
+    This is the lambda handler for the code above. At the moment, the only path that's covered is the final 'else'. In
+    future, we can send slightly different events through the EventBridge cron job.
+
+    :param event:
+    :param context:
+    :return:
+    """
     try:
         jprint({"event": event, "context": context})
 
