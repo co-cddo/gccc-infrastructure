@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main ]
     paths:
-      - lambda/email-forwarder/**
+      - lambda_/email-forwarder/**
   workflow_dispatch:
 
 permissions:
@@ -52,12 +52,12 @@ jobs:
       # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
       - name: Terraform Init
         run: terraform init
-        working-directory: lambda/email-forwarder/
+        working-directory: lambda_/email-forwarder/
 
       # Checks that all Terraform configuration files adhere to a canonical format
       - name: Terraform Format
         run: terraform fmt -check
-        working-directory: lambda/email-forwarder/
+        working-directory: lambda_/email-forwarder/
 
       # Generates an execution plan for Terraform
       - name: Terraform Apply
@@ -68,4 +68,4 @@ jobs:
             -var="production_iam_role=${{ secrets.PRODUCTION_IAM_ROLE }}"
         env:
           TF_WORKSPACE: ${{ matrix.environment }}
-        working-directory: lambda/email-forwarder/
+        working-directory: lambda_/email-forwarder/

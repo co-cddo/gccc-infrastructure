@@ -1,0 +1,2 @@
+-r lambda/zendesk-backup/requirements.txt
+pytest
