@@ -88,7 +88,7 @@ def save_support(ticket_ids: Optional[list] = None):
     :param ticket_ids:
     :return:
     """
-    s3_bucket = get_s3_bucket
+    s3_bucket = get_s3_bucket()
     if ticket_ids:
         tickets = [zenpy_client().tickets(id=str(ticket_id)) for ticket_id in ticket_ids]
     else:
