@@ -118,7 +118,7 @@ resource "aws_lambda_function" "lambda" {
   runtime       = "python3.11"
 
   memory_size = 512
-  timeout     = 300
+  timeout     = 900
 
   lifecycle {
     ignore_changes = [
