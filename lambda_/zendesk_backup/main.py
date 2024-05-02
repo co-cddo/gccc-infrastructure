@@ -111,7 +111,7 @@ def save_support(ticket_ids: Optional[list] = None):
 
 @dataclasses.dataclass
 class ZendeskObject:
-    html_url: str
+    html_url: Optional[str]
     id: str
 
     to_dict = dataclasses.asdict
@@ -133,10 +133,9 @@ def get_relations(subject: ObjectTypes) -> dict[str, ObjectTypes]:
 
 
 def extract_substructure(object_type: ObjectTypes, zendesk_object: ZendeskObject, parent_id: str, parent_key: str,
-                         article_ids: list) -> tuple[dict, str]:
+                         article_ids: list) -> Optional[tuple[dict, str]]:
     relations = get_relations(object_type)
     parent_type = relations["parent"]
-    substructure = {}
     parent_type_id = f"{parent_type}_id"
     if zendesk_object.__getattribute__(parent_type_id) == parent_id:
         object_ref = get_key(zendesk_object.to_dict())
@@ -144,7 +143,8 @@ def extract_substructure(object_type: ObjectTypes, zendesk_object: ZendeskObject
             object_key = f"{parent_key}/{object_ref}"
             if article_ids == [] or zendesk_object.id in article_ids:
                 substructure = {object_key: zendesk_object.to_dict()}
-    return substructure, object_key
+                return substructure, object_key
+    return None
 
 
 def extract_helpcenter(article_ids: list) -> dict[str, dict]:
@@ -166,25 +166,29 @@ def extract_helpcenter(article_ids: list) -> dict[str, dict]:
 
             sections = zenpy_client().help_center.sections(category_id=category.id)
             for section in sections:
-                section_file, section_key = extract_substructure(
+                section_output = extract_substructure(
                     object_type="section",
                     zendesk_object=section,
                     parent_id=category.id,
                     parent_key=category_key,
                     article_ids=article_ids
                 )
-                files.update(section_file)
+                if section_output:
+                    section_file, section_key = section_output
+                    files.update(section_file)
 
-                articles = zenpy_client().help_center.articles(section_id=section.id)
-                for article in articles:
-                    article_file, _ = extract_substructure(
-                        object_type="article",
-                        zendesk_object=article,
-                        parent_id=section.id,
-                        parent_key=section_key,
-                        article_ids=article_ids,
-                    )
-                    files.update(article_file)
+                    articles = zenpy_client().help_center.articles(section_id=section.id)
+                    for article in articles:
+                        article_output = extract_substructure(
+                            object_type="article",
+                            zendesk_object=article,
+                            parent_id=section.id,
+                            parent_key=section_key,
+                            article_ids=article_ids,
+                        )
+                        if article_output:
+                            article_file, _ = article_output
+                            files.update(article_file)
     return files
 
 

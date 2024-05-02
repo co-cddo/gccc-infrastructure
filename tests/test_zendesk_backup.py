@@ -92,6 +92,33 @@ def test_save_helpcenter(s3_client: Mock, zenpy_client: Mock):
     )
 
 
+@mock.patch("lambda_.zendesk_backup.main.zenpy_client")
+@mock.patch("lambda_.zendesk_backup.main.s3_client")
+def test_save_helpcenter_when_no_key(s3_client: Mock, zenpy_client: Mock):
+    category = ZendeskCategory(html_url="", id="category_id")
+    section = ZendeskSection(category_id=category.id, html_url="", id="section_id")
+    article = ZendeskArticle(html_url="", section_id=section.id, id="article_id")
+    zenpy_client.return_value.help_center.categories.return_value = [category]
+    zenpy_client.return_value.help_center.sections.return_value = [section]
+    zenpy_client.return_value.help_center.articles.return_value = [article]
+    zendesk_backup.save_helpcentre()
+    s3_put: Mock = s3_client.return_value.put_object
+    s3_put.assert_not_called()
+
+
+def test_extract_substructure_when_no_key():
+    section = ZendeskSection(category_id="category_id", id="section_id", html_url="")
+    section_output = zendesk_backup.extract_substructure(
+        "section",
+        section,
+        parent_id="category_id",
+        parent_key="parent/key",
+        article_ids=[]
+    )
+    assert section_output is None
+
+
+
 @dataclasses.dataclass
 class ZendeskCategory(ZendeskObject):
     id: str
