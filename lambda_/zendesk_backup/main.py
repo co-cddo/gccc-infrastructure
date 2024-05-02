@@ -95,12 +95,18 @@ def save_support(ticket_ids: Optional[list] = None):
         tickets = zenpy_client().search_export(type="ticket")
 
     for ticket in tickets:
+        comment_thread = zenpy_client().tickets.comments(ticket)
         # subject = re.sub(r"\s+", " ", re.sub(r"[^a-zA-Z0-9 ]", "", ticket.raw_subject))
         filename = f"gc3-{ticket.id}.json"
         key = f"{s3_support_prefix}tickets/{filename}"
         jprint(f"Saving 's3://{s3_bucket}/{key}'")
 
-        dobj = add_athena_datetimes(ticket.to_dict())
+        ticket_as_dict = ticket.to_dict()
+
+        dobj = add_athena_datetimes(ticket_as_dict)
+
+        # add all comments to the ticket
+        ticket_as_dict["comments"] = [comment.to_dict() for comment in comment_thread]
 
         s3_client().put_object(
             Body=json.dumps(dobj, default=str).encode("utf-8"),
