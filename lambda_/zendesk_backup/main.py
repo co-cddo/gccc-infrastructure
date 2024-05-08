@@ -103,13 +103,13 @@ def save_support(ticket_ids: Optional[list] = None):
 
         ticket_as_dict = ticket.to_dict()
 
-        dobj = add_athena_datetimes(ticket_as_dict)
+        backup_object = add_athena_datetimes(ticket_as_dict)
 
         # add all comments to the ticket
-        ticket_as_dict["comments"] = [comment.to_dict() for comment in comment_thread]
+        backup_object["comments"] = [comment.to_dict() for comment in comment_thread]
 
         s3_client().put_object(
-            Body=json.dumps(dobj, default=str).encode("utf-8"),
+            Body=json.dumps(backup_object, default=str).encode("utf-8"),
             Bucket=s3_bucket,
             Key=key,
         )
